@@ -1,0 +1,10 @@
+#ignore these files
+
+*.ico
+*.dll
+*.txt
+LICENSE
+*.bat
+*.exe
+py2exe_setup.py
+

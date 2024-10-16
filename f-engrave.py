@@ -1981,6 +1981,7 @@ class Application(Frame):
         self.clean_v    = StringVar()
         self.clean_name = StringVar()
 
+        self.gext        = StringVar()
         self.gpre        = StringVar()
         self.gpost       = StringVar()
 
@@ -2078,6 +2079,7 @@ class Application(Frame):
         self.yorigin.set("0.0")
         self.segarc.set("5.0")
         self.accuracy.set("0.001")
+        self.gext.set(".ngc")
 
         self.segID   = []
         self.gcode   = []
@@ -2148,16 +2150,16 @@ class Application(Frame):
         ##########################################################################
         ###                     END INITILIZING VARIABLES                      ###
         ##########################################################################
-        config_file = "config.ngc"
+        config_file = "config.txt"
         home_config1 = self.HOME_DIR + "/.config/f-engrave/" + config_file
         config_file2 = ".fengraverc"
         home_config2 = self.HOME_DIR + "/.config/f-engrave/" + config_file2
         if ( os.path.isfile(config_file) ):
-            self.Open_G_Code_File(config_file)
+            self.Open_Settings_File(config_file)
         elif ( os.path.isfile(home_config1) ):
-            self.Open_G_Code_File(home_config1)
+            self.Open_Settings_File(home_config1)
         elif ( os.path.isfile(home_config2) ):
-            self.Open_G_Code_File(home_config2)
+            self.Open_Settings_File(home_config2)
 
         opts, args = None, None
         try:
@@ -2177,7 +2179,7 @@ class Application(Frame):
                 fmessage('-h    : print this help (also --help)\n')
                 sys.exit()
             if option in ('-g','--gcode_file'):
-                self.Open_G_Code_File(value)
+                self.Open_Settings_File(value)
                 self.NGC_FILE = value
             if option in ('-f','--fontdir'):
                 if os.path.isdir(value):
@@ -2538,7 +2540,7 @@ class Application(Frame):
         top_File.add("command", label = "Save Settings to File", \
                          command = self.menu_File_Save_Settings_File)
         top_File.add("command", label = "Read Settings from File", \
-                         command = self.menu_File_Open_G_Code_File)
+                         command = self.menu_File_Open_Settings_File)
         top_File.add_separator()
         if self.POTRACE_AVAIL == TRUE:
             top_File.add("command", label = "Open DXF/Image", \
@@ -2883,6 +2885,8 @@ class Application(Frame):
             self.gcode.append('(fengrave_set fontdir    \042%s\042 )' %( self.fontdir.get()  ))
             self.gcode.append('(fengrave_set gpre        %s )' %( self.gpre.get()         ))
             self.gcode.append('(fengrave_set gpost       %s )' %( self.gpost.get()        ))
+            self.gcode.append('(fengrave_set gext       %s )' %( self.gext.get()        ))
+            
 
             self.gcode.append('(fengrave_set imagefile   \042%s\042 )' %( self.IMAGE_FILE ))
             self.gcode.append('(fengrave_set input_type  %s )' %( self.input_type.get() ))
@@ -4760,16 +4764,16 @@ class Application(Frame):
         self.Recalc_RQD()
     # End General Settings Callbacks
 
-    def menu_File_Open_G_Code_File(self):
+    def menu_File_Open_Settings_File(self):
         init_dir = os.path.dirname(self.NGC_FILE)
         if ( not os.path.isdir(init_dir) ):
             init_dir = self.HOME_DIR
-        fileselect = askopenfilename(filetypes=[("F-Engrave G-code Files","*.ngc"),\
+        fileselect = askopenfilename(filetypes=[("F-Engrave Settings Files","*.txt"),\
                                                 ("All Files","*")],\
                                                  initialdir=init_dir)
 
         if fileselect != '' and fileselect != ():
-            self.Open_G_Code_File(fileselect)
+            self.Open_Settings_File(fileselect)
 
     def menu_File_Open_DXF_File(self):
         init_dir = os.path.dirname(self.IMAGE_FILE)
@@ -4802,7 +4806,7 @@ class Application(Frame):
             self.Read_image_file()
             self.DoIt()
 
-    def Open_G_Code_File(self,filename):
+    def Open_Settings_File(self,filename):
         self.delay_calc = 1
         boxsize = "0"
         try:
@@ -4814,189 +4818,192 @@ class Application(Frame):
         ident = "fengrave_set"
         for line in fin:
             if ident in line:
+                input_code =  line.split()[1]
+                value = line.split()[2]
+                value_list = line.split()[2:]
+                
+                match input_code:
+                    case "TCODE":
+                        for char in value_list:
+                            try:
+                                text_codes.append(int(char))
+                            except:
+                                pass
+                    # BOOL
+                    case "show_axis":
+                        self.show_axis.set(value)
+                    case "show_box":
+                        self.show_box.set(value)
+                    case "show_thick":
+                        self.show_thick.set(value)
+                    case "flip":
+                        self.flip.set(value)
+                    case "mirror":
+                        self.mirror.set(value)
+                    case "outer":
+                        self.outer.set(value)
+                    case "upper":
+                       self.upper.set(value)
+                    case "v_flop":
+                       self.v_flop.set(value)
+                    case "v_pplot":
+                       self.v_pplot.set(value)
+                    case "inlay":
+                       self.inlay.set(value)
+                    case "bmp_long":
+                       self.bmp_longcurve.set(value)
+                    case "ext_char":
+                       self.ext_char.set(value)
+                    case "useIMGsize":
+                       self.useIMGsize.set(value)
+                    case "no_comments":
+                       self.no_comments.set(value)
+                    case "show_v_path":
+                       self.show_v_path.set(value)
+                    case "show_v_area":
+                       self.show_v_area.set(value)
 
-                input_code =  line.split(ident)[1].split()[0]
 
-                if "TCODE" in input_code:
-                    code_list = line[line.find("TCODE"):].split()
-                    for char in code_list:
-                        try:
-                            text_codes.append(int(char))
-                        except:
-                            pass
-                # BOOL
-                elif "show_axis"  in input_code:
-                    self.show_axis.set(line[line.find("show_axis"):].split()[1])
-                elif "show_box"   in input_code:
-                    self.show_box.set(line[line.find("show_box"):].split()[1])
-                elif "show_thick" in input_code:
-                    self.show_thick.set(line[line.find("show_thick"):].split()[1])
-                elif "flip"       in input_code:
-                    self.flip.set(line[line.find("flip"):].split()[1])
-                elif "mirror"     in input_code:
-                    self.mirror.set(line[line.find("mirror"):].split()[1])
-                elif "outer"  in input_code:
-                    self.outer.set(line[line.find("outer"):].split()[1])
-                elif "upper"      in input_code:
-                   self.upper.set(line[line.find("upper"):].split()[1])
-                elif "v_flop"      in input_code:
-                   self.v_flop.set(line[line.find("v_flop"):].split()[1])
-                elif "v_pplot"      in input_code:
-                   self.v_pplot.set(line[line.find("v_pplot"):].split()[1])
-                elif "inlay"      in input_code:
-                   self.inlay.set(line[line.find("inlay"):].split()[1])
-                elif "bmp_long"      in input_code:
-                   self.bmp_longcurve.set(line[line.find("bmp_long"):].split()[1])
-                elif "ext_char"   in input_code:
-                   self.ext_char.set(line[line.find("ext_char"):].split()[1])
-                elif "useIMGsize"   in input_code:
-                   self.useIMGsize.set(line[line.find("useIMGsize"):].split()[1])
-                elif "no_comments"   in input_code:
-                   self.no_comments.set(line[line.find("no_comments"):].split()[1])
-                elif "show_v_path"   in input_code:
-                   self.show_v_path.set(line[line.find("show_v_path"):].split()[1])
-                elif "show_v_area"   in input_code:
-                   self.show_v_area.set(line[line.find("show_v_area"):].split()[1])
+                    case "plotbox":
+                        if (value == "box"):
+                            self.plotbox.set(1)
+                        elif (value == "no_box"):
+                            self.plotbox.set(0)
+                        else:
+                            self.plotbox.set(value)
 
+                    # STRING
+                    case "last_dir":
+                        self.working_dir = value
+                        print("LAST DIR FOUND:", self.working_dir)
+                    case "fontdir":
+                        self.fontdir.set(value.split("\042")[1])
+                    case "gpre":
+                        gpre_tmp = ""
+                        for word in line[line.find("gpre"):].split():
+                            if word != ")" and word != "gpre":
+                                gpre_tmp = gpre_tmp + word + " "
+                        self.gpre.set(gpre_tmp)
+                    case "gpost":
+                        gpost_tmp = ""
+                        for word in line[line.find("gpost"):].split():
+                            if word != ")" and word != "gpost":
+                                gpost_tmp = gpost_tmp + word + " "
+                        self.gpost.set(gpost_tmp)
 
-                elif "plotbox"    in input_code:
-                    if (line[line.find("plotbox"):].split()[1] == "box"):
-                        self.plotbox.set(1)
-                    elif (line[line.find("plotbox"):].split()[1] == "no_box"):
-                        self.plotbox.set(0)
-                    else:
-                        self.plotbox.set(line[line.find("plotbox"):].split()[1])
+                    # STRING.set()
+                    case "gext":
+                        self.gext.set(value)
+                    case "arc_fit":
+                       self.arc_fit.set(value)
+                    case "YSCALE":
+                        self.YSCALE.set(value)
+                    case "XSCALE":
+                        self.XSCALE.set(value)
+                    case "LSPACE":
+                        self.LSPACE.set(value)
+                    case "CSPACE":
+                        self.CSPACE.set(value)
+                    case "WSPACE":
+                        self.WSPACE.set(value)
+                    case "TANGLE":
+                        self.TANGLE.set(value)
+                    case "TRADIUS":
+                        self.TRADIUS.set(value)
+                    case "ZSAFE":
+                        self.ZSAFE.set(value)
+                    case "ZCUT":
+                        self.ZCUT.set(value)
+                    case "STHICK":
+                        self.STHICK.set(value)
 
-                # STRING
-                elif "last_dir" in input_code:
-                    self.working_dir = line[line.find("last_dir"):].split()[1]
-                    print("LAST DIR FOUND:", self.working_dir)
-                elif "fontdir"    in input_code:
-                    self.fontdir.set(line[line.find("fontdir"):].split("\042")[1])
-                elif "gpre"       in input_code:
-                    gpre_tmp = ""
-                    for word in line[line.find("gpre"):].split():
-                        if word != ")" and word != "gpre":
-                            gpre_tmp = gpre_tmp + word + " "
-                    self.gpre.set(gpre_tmp)
-                elif "gpost"      in input_code:
-                    gpost_tmp = ""
-                    for word in line[line.find("gpost"):].split():
-                        if word != ")" and word != "gpost":
-                            gpost_tmp = gpost_tmp + word + " "
-                    self.gpost.set(gpost_tmp)
+                    case "xorigin":
+                        self.xorigin.set(value)
+                    case "yorigin":
+                        self.yorigin.set(value)
+                    case "segarc":
+                        self.segarc.set(value)
+                    case "accuracy":
+                        self.accuracy.set(value)
 
-                # STRING.set()
-                elif "arc_fit"   in input_code:
-                   self.arc_fit.set(line[line.find("arc_fit"):].split()[1])
-                elif "YSCALE"     in input_code:
-                    self.YSCALE.set(line[line.find("YSCALE"):].split()[1])
-                elif "XSCALE"     in input_code:
-                    self.XSCALE.set(line[line.find("XSCALE"):].split()[1])
-                elif "LSPACE"     in input_code:
-                    self.LSPACE.set(line[line.find("LSPACE"):].split()[1])
-                elif "CSPACE"     in input_code:
-                    self.CSPACE.set(line[line.find("CSPACE"):].split()[1])
-                elif "WSPACE"     in input_code:
-                    self.WSPACE.set(line[line.find("WSPACE"):].split()[1])
-                elif "TANGLE"     in input_code:
-                    self.TANGLE.set(line[line.find("TANGLE"):].split()[1])
-                elif "TRADIUS"    in input_code:
-                    self.TRADIUS.set(line[line.find("TRADIUS"):].split()[1])
-                elif "ZSAFE"      in input_code:
-                    self.ZSAFE.set(line[line.find("ZSAFE"):].split()[1])
-                elif "ZCUT"       in input_code:
-                    self.ZCUT.set(line[line.find("ZCUT"):].split()[1])
-                elif "STHICK"     in input_code:
-                    self.STHICK.set(line[line.find("STHICK"):].split()[1])
-
-                elif "xorigin"    in input_code:
-                    self.xorigin.set(line[line.find("xorigin"):].split()[1])
-                elif "yorigin"    in input_code:
-                    self.yorigin.set(line[line.find("yorigin"):].split()[1])
-                elif "segarc"     in input_code:
-                    self.segarc.set(line[line.find("segarc"):].split()[1])
-                elif "accuracy"   in input_code:
-                    self.accuracy.set(line[line.find("accuracy"):].split()[1])
-
-                elif "origin"     in input_code:
-                    self.origin.set(line[line.find("origin"):].split()[1])
-                elif "justify"    in input_code:
-                    self.justify.set(line[line.find("justify"):].split()[1])
-                elif "units"      in input_code:
-                    self.units.set(line[line.find("units"):].split()[1])
-                elif "FEED"       in input_code:
-                    self.FEED.set(line[line.find("FEED"):].split()[1])
-                elif "PLUNGE"       in input_code:
-                    self.PLUNGE.set(line[line.find("PLUNGE"):].split()[1])
-                elif "fontfile"   in input_code:
-                    self.fontfile.set(line[line.find("fontfile"):].split("\042")[1])
-                elif "H_CALC"     in input_code:
-                    self.H_CALC.set(line[line.find("H_CALC"):].split()[1])
-                elif "boxgap"    in input_code:
-                    self.boxgap.set(line[line.find("boxgap"):].split()[1])
-                elif "boxsize"    in input_code:
-                    boxsize = line[line.find("boxsize"):].split()[1]
-                elif "cut_type"    in input_code:
-                    self.cut_type.set(line[line.find("cut_type"):].split()[1])
-                elif "bit_shape"    in input_code:
-                    self.bit_shape.set(line[line.find("bit_shape"):].split()[1])
-                elif "v_bit_angle"    in input_code:
-                    self.v_bit_angle.set(line[line.find("v_bit_angle"):].split()[1])
-                elif "v_bit_dia"    in input_code:
-                    self.v_bit_dia.set(line[line.find("v_bit_dia"):].split()[1])
-                elif "v_drv_crner"    in input_code:
-                    self.v_drv_crner.set(line[line.find("v_drv_crner"):].split()[1])
-                elif "v_stp_crner"    in input_code:
-                    self.v_stp_crner.set(line[line.find("v_stp_crner"):].split()[1])
-                elif "v_step_len"    in input_code:
-                    self.v_step_len.set(line[line.find("v_step_len"):].split()[1])
-                elif "allowance"    in input_code:
-                    self.allowance.set(line[line.find("allowance"):].split()[1])
-                elif "v_max_cut"    in input_code:
-                    self.v_max_cut.set(line[line.find("v_max_cut"):].split()[1])
-                elif "v_rough_stk"    in input_code:
-                    self.v_rough_stk.set(line[line.find("v_rough_stk"):].split()[1])
-                elif "var_dis"    in input_code:
-                    self.var_dis.set(line[line.find("var_dis"):].split()[1])
-                elif "v_depth_lim"    in input_code:
-                    self.v_depth_lim.set(line[line.find("v_depth_lim"):].split()[1])
-                elif "v_check_all"    in input_code:
-                    self.v_check_all.set(line[line.find("v_check_all"):].split()[1])
-                elif "bmp_turnp"    in input_code:
-                    self.bmp_turnpol.set(line[line.find("bmp_turnp"):].split()[1])
-                elif "bmp_turds"    in input_code:
-                    self.bmp_turdsize.set(line[line.find("bmp_turds"):].split()[1])
-                elif "bmp_alpha"    in input_code:
-                    self.bmp_alphamax.set(line[line.find("bmp_alpha"):].split()[1])
-                elif "bmp_optto"    in input_code:
-                    self.bmp_opttolerance.set(line[line.find("bmp_optto"):].split()[1])
-                elif "imagefile"    in input_code:
-                    self.IMAGE_FILE = (line[line.find("imagefile"):].split("\042")[1])
-                elif "input_type"    in input_code:
-                    self.input_type.set(line[line.find("input_type"):].split()[1])
-                elif "clean_dia"     in input_code:
-                    self.clean_dia.set(line[line.find("clean_dia"):].split()[1])
-                elif "clean_step"    in input_code:
-                    self.clean_step.set(line[line.find("clean_step"):].split()[1])
-                elif "clean_v"       in input_code:
-                    self.clean_v.set(line[line.find("clean_v"):].split()[1])
-                elif "clean_paths"    in input_code:
-                    clean_paths=(line[line.find("clean_paths"):].split()[1])
-                    clean_split = [float(n) for n in clean_paths.split(',')]
-                    if len(clean_split) > 5:
-                        self.clean_P.set(bool(clean_split[0]))
-                        self.clean_X.set(bool(clean_split[1]))
-                        self.clean_Y.set(bool(clean_split[2]))
-                        self.v_clean_P.set(bool(clean_split[3]))
-                        self.v_clean_Y.set(bool(clean_split[4]))
-                        self.v_clean_X.set(bool(clean_split[5]))
-                    if len(clean_split) > 7:
-                        self.clean_L.set(bool(clean_split[6]))
-                        self.v_clean_L.set(bool(clean_split[7]))
-                elif "NGC_DIR"    in input_code:
-                    NGC_DIR = (line[line.find("NGC_DIR"):].split("\042")[1])
-                    self.NGC_FILE     = (NGC_DIR+"/None")
+                    case "origin":
+                        self.origin.set(value)
+                    case "justify":
+                        self.justify.set(value)
+                    case "units":
+                        self.units.set(value)
+                    case "FEED":
+                        self.FEED.set(value)
+                    case "PLUNGE":
+                        self.PLUNGE.set(value)
+                    case "fontfile":
+                        self.fontfile.set(line[line.find("fontfile"):].split("\042")[1])
+                    case "H_CALC":
+                        self.H_CALC.set(value)
+                    case "boxgap":
+                        self.boxgap.set(value)
+                    case "boxsize":
+                        boxsize = value
+                    case "cut_type":
+                        self.cut_type.set(value)
+                    case "bit_shape":
+                        self.bit_shape.set(value)
+                    case "v_bit_angle":
+                        self.v_bit_angle.set(value)
+                    case "v_bit_dia":
+                        self.v_bit_dia.set(value)
+                    case "v_drv_crner":
+                        self.v_drv_crner.set(value)
+                    case "v_stp_crner":
+                        self.v_stp_crner.set(value)
+                    case "v_step_len":
+                        self.v_step_len.set(value)
+                    case "allowance":
+                        self.allowance.set(value)
+                    case "v_max_cut":
+                        self.v_max_cut.set(value)
+                    case "v_rough_stk":
+                        self.v_rough_stk.set(value)
+                    case "var_dis":
+                        self.var_dis.set(value)
+                    case "v_depth_lim":
+                        self.v_depth_lim.set(value)
+                    case "v_check_all":
+                        self.v_check_all.set(value)
+                    case "bmp_turnp":
+                        self.bmp_turnpol.set(value)
+                    case "bmp_turds":
+                        self.bmp_turdsize.set(value)
+                    case "bmp_alpha":
+                        self.bmp_alphamax.set(value)
+                    case "bmp_optto":
+                        self.bmp_opttolerance.set(value)
+                    case "imagefile":
+                        self.IMAGE_FILE = (line[line.find("imagefile"):].split("\042")[1])
+                    case "input_type":
+                        self.input_type.set(value)
+                    case "clean_dia":
+                        self.clean_dia.set(value)
+                    case "clean_step":
+                        self.clean_step.set(value)
+                    case "clean_v":
+                        self.clean_v.set(value)
+                    case "clean_paths":
+                        clean_paths=(value)
+                        clean_split = [float(n) for n in clean_paths.split(',')]
+                        if len(clean_split) > 5:
+                            self.clean_P.set(bool(clean_split[0]))
+                            self.clean_X.set(bool(clean_split[1]))
+                            self.clean_Y.set(bool(clean_split[2]))
+                            self.v_clean_P.set(bool(clean_split[3]))
+                            self.v_clean_Y.set(bool(clean_split[4]))
+                            self.v_clean_X.set(bool(clean_split[5]))
+                        if len(clean_split) > 7:
+                            self.clean_L.set(bool(clean_split[6]))
+                            self.v_clean_L.set(bool(clean_split[7]))
+                    case "NGC_DIR":
+                        NGC_DIR = (line[line.find("NGC_DIR"):].split("\042")[1])
+                        self.NGC_FILE     = (NGC_DIR+"/None")
 
         fin.close()
 
@@ -5126,7 +5133,7 @@ class Application(Frame):
             init_file="text"
 
         filename = asksaveasfilename(defaultextension='.ngc', \
-                                     filetypes=[("G-Code File","*.ngc"),("TAP File","*.tap"),("All Files","*")],\
+                                     filetypes=[("G-Code File","*"+self.gext.get()),("TAP File","*.tap"),("All Files","*")],\
                                      initialdir=init_dir,\
                                      initialfile= init_file )
 
@@ -8415,6 +8422,13 @@ class Application(Frame):
         self.Checkbutton_no_com.place(x=xd_entry_L, y=D_Yloc, width=75, height=23)
         self.Checkbutton_no_com.configure(variable=self.no_comments)
 
+        D_Yloc=D_Yloc+D_dY
+        self.Label_G_ext = Label(gen_settings,text="G Code File Extension")
+        self.Label_G_ext.place(x=xd_label_L, y=D_Yloc, width=w_label, height=21)
+        self.Entry_G_ext = Entry(gen_settings,width="15")
+        self.Entry_G_ext.place(x=xd_entry_L, y=D_Yloc, width=w_entry, height=23)
+        self.Entry_G_ext.configure(textvariable=self.gext)
+        
         D_Yloc=D_Yloc+D_dY
         self.Label_Gpre = Label(gen_settings,text="G Code Header")
         self.Label_Gpre.place(x=xd_label_L, y=D_Yloc, width=w_label, height=21)
